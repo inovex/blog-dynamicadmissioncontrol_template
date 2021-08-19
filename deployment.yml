@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inovex-webhook
+  namespace: default
+  labels:
+    app: inovex-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inovex-webhook
+  template:
+    metadata:
+      labels:
+        app: inovex-webhook
+    spec:
+      containers:
+        - name: inovex-webhook
+          image: webhooktest:0.1.0
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/certs
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          securityContext:
+            readOnlyRootFilesystem: true
+          ports:
+            - containerPort: 8443
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: inovex-webhook-certs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inovex-webhook
+  namespace: default
+  labels:
+    app: inovex-webhook
+spec:
+  selector:
+    app: inovex-webhook
+  ports:
+  - name: webhook
+    port: 8443
+    targetPort: 8443
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: inovex-webhook-mutate
+webhooks:
+  - name: webhook-mutate.inovex.io
+    clientConfig:
+      service:
+        name: inovex-webhook
+        namespace: default
+        path: "/mutate"
+        port: 8443
+      caBundle: "$CA_BUNDLE"
+    rules:
+      - operations: ["CREATE","UPDATE"]
+        apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        resources: ["deployments"]
+        scope: "*"
+    failurePolicy: Fail
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    timeoutSeconds: 10
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: inovex-webhook-validate
+webhooks:
+  - name: webhook-validate.inovex.io
+    clientConfig:
+      service:
+        name: inovex-webhook
+        namespace: default
+        path: "/validate"
+        port: 8443
+      caBundle: "$CA_BUNDLE"
+    rules:
+      - operations: ["CREATE","UPDATE"]
+        apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        resources: ["deployments"]
+        scope: "*"
+    failurePolicy: Fail
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    timeoutSeconds: 10
+

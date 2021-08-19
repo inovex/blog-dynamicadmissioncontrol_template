@@ -1,0 +1,18 @@
+{
+    "hosts": [
+        "inovex-webhook",
+        "inovex-webhook.default.svc"
+    ],
+    "CN": "inovex-webhook.default.svc",
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": [{
+        "C": "DE",
+        "L": "Karlsruhe",
+        "O": "inovex GmbH",
+        "OU": "ITO",
+        "ST": "Baden-Wuerttemberg"
+    }]
+}
